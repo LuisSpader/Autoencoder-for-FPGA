@@ -221,8 +221,13 @@ class QAutoencoder:
             #                         metrics="accuracy")
 
             # self.autoencoder = Model(self.input, outputs=self.latent_classifier, name='classifier')
+
+            # self.autoencoder = tf.keras.Model(
+            #     self.input, outputs=self.latent_classifier)
             self.autoencoder = tf.keras.Model(
-                self.input, outputs=self.decoder, name='classifier')
+                self.input, outputs=self.latent_classifier, name='classifier')
+            # self.autoencoder = tf.keras.Model(
+            #     self.input, outputs=[self.decoder, self.latent_classifier])
 
             self.autoencoder.compile(
                 loss='categorical_crossentropy', optimizer='adam', metrics="accuracy")
@@ -237,8 +242,13 @@ class QAutoencoder:
         else:
             # self.autoencoder = Model(
             #     self.input, outputs=self.decoder, name='autoencoder')
+
             self.autoencoder = tf.keras.Model(
                 self.input, outputs=self.decoder, name='autoencoder')
+            # self.autoencoder = tf.keras.Model(
+            #     self.input, outputs=self.decoder)  # , name='autoencoder')
+            # self.autoencoder = tf.keras.Model(
+            #     self.input, outputs=[self.decoder, self.latent_classifier])
 
             self.autoencoder.compile(loss='mse', optimizer='adam')
             if not self.pruned:
