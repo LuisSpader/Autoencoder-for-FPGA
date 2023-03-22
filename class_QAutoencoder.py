@@ -88,7 +88,7 @@ class QAutoencoder:
                                                           5, 0, alpha=1),
                                                       kernel_initializer='lecun_uniform'), **self.pruning_params)(self.encoder)
             self.encoder = QActivation(
-                activation=quantized_relu(5), name='relu3')(self.encoder)
+                activation=quantized_relu(5), name='relu3_enc')(self.encoder)
 
         if not self.pruned:
             self.encoder = QDense(15,  name='fc2',
@@ -121,7 +121,7 @@ class QAutoencoder:
                                                           5, 0, alpha=1),
                                                       kernel_initializer='lecun_uniform'), **self.pruning_params)(self.encoder)
             self.decoder = QActivation(activation=quantized_relu(
-                5, 0), name='relu3')(self.decoder)
+                5, 0), name='relu3_dec')(self.decoder)
 
         if not self.pruned:
             self.decoder = QDense(16,  name='fc3',
@@ -130,7 +130,7 @@ class QAutoencoder:
                                   bias_quantizer=quantized_bits(5, 0, alpha=1),
                                   kernel_initializer='lecun_uniform')(self.encoder)
             self.decoder = QActivation(
-                activation=quantized_relu(5), name='relu3')(self.decoder)
+                activation=quantized_relu(5), name='relu3_dec')(self.decoder)
 
         self.decoder = QDense(32,  name='fc4',
                               kernel_quantizer=quantized_bits(5, 0, alpha=1),

@@ -100,8 +100,10 @@ class all_callbacks(object):
         self.modelcheckperiod = ModelCheckpoint(
             outputDir+"/KERAS_check_model_epoch{epoch:02d}.h5", verbose=1, period=10)
 
+        # self.modelcheck = ModelCheckpoint(
+        #     outputDir+"/KERAS_check_model_last.h5", verbose=1)
         self.modelcheck = ModelCheckpoint(
-            outputDir+"/KERAS_check_model_last.h5", verbose=1)
+            outputDir+"/KERAS_check_model_last.model", verbose=1)
 
         self.modelcheckweights = ModelCheckpoint(
             outputDir+"/KERAS_check_model_last_weights.h5", verbose=1, save_weights_only=True)
