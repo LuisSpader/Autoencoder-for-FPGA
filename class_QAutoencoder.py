@@ -60,44 +60,48 @@ class QAutoencoder:
         self.pruning_params = {"pruning_schedule": pruning_schedule.ConstantSparsity(
             0.8, begin_step=2000, end_step=10000, frequency=100)}
 
-    def build_encoder(self):
+    def build_encoder(self, BIT_WIDTH: int):
         """Build your encoder architecture and store the output in self.encoder. 
         The final encoding dimension is 2."""
 
         self.encoder = QDense(15,  name='fc1',
-                              kernel_quantizer=quantized_bits(5, 0, alpha=1),
-                              bias_quantizer=quantized_bits(5, 0, alpha=1),
+                              # (bits, integer, scaling factor per channel)
+                              kernel_quantizer=quantized_bits(
+                                  BIT_WIDTH, 0, alpha=1),
+                              bias_quantizer=quantized_bits(
+                                  BIT_WIDTH, 0, alpha=1),
                               kernel_initializer='lecun_uniform')(self.input)
         self.encoder = QActivation(
-            activation=quantized_relu(5), name='relu1')(self.encoder)
+            activation=quantized_relu(BIT_WIDTH), name='relu1')(self.encoder)
 
         if self.pruned:
             self.encoder = prune_low_magnitude(QDense(15,  name='fc2_prun',
                                                       kernel_quantizer=quantized_bits(
-                                                          5, 0, alpha=1),
+                                                          BIT_WIDTH, 0, alpha=1),
                                                       bias_quantizer=quantized_bits(
-                                                          5, 0, alpha=1),
+                                                          BIT_WIDTH, 0, alpha=1),
                                                       kernel_initializer='lecun_uniform'), **self.pruning_params)(self.encoder)
             self.encoder = QActivation(
-                activation=quantized_relu(5), name='relu2')(self.encoder)
+                activation=quantized_relu(BIT_WIDTH), name='relu2')(self.encoder)
 
             self.encoder = prune_low_magnitude(QDense(15,  name='fc3_prun',
                                                       kernel_quantizer=quantized_bits(
-                                                          5, 0, alpha=1),
+                                                          BIT_WIDTH, 0, alpha=1),
                                                       bias_quantizer=quantized_bits(
-                                                          5, 0, alpha=1),
+                                                          BIT_WIDTH, 0, alpha=1),
                                                       kernel_initializer='lecun_uniform'), **self.pruning_params)(self.encoder)
             self.encoder = QActivation(
-                activation=quantized_relu(5), name='relu3_enc')(self.encoder)
+                activation=quantized_relu(BIT_WIDTH), name='relu3_enc')(self.encoder)
 
         if not self.pruned:
             self.encoder = QDense(15,  name='fc2',
                                   kernel_quantizer=quantized_bits(
-                                      5, 0, alpha=1),
-                                  bias_quantizer=quantized_bits(5, 0, alpha=1),
+                                      BIT_WIDTH, 0, alpha=1),
+                                  bias_quantizer=quantized_bits(
+                                      BIT_WIDTH, 0, alpha=1),
                                   kernel_initializer='lecun_uniform')(self.encoder)
             self.encoder = QActivation(
-                activation=quantized_relu(5), name='relu2')(self.encoder)
+                activation=quantized_relu(BIT_WIDTH), name='relu2')(self.encoder)
 
         self.encoder = Dense(self.latent_dim,  activation='relu',
                              name='encoder_output')(self.encoder)
@@ -107,7 +111,7 @@ class QAutoencoder:
         self.encoder_model = tf.keras.Model(
             self.input, self.encoder, name='encoder')
 
-    def build_decoder(self):
+    def build_decoder(self, BIT_WIDTH: int):
         """Build the decoder architecture."""
         if self.encoder is None:
             raise RuntimeError(
@@ -116,9 +120,9 @@ class QAutoencoder:
         if self.pruned:
             self.decoder = prune_low_magnitude(QDense(16,  name='fc3',
                                                       kernel_quantizer=quantized_bits(
-                                                          5, 0, alpha=1),
+                                                          BIT_WIDTH, 0, alpha=1),
                                                       bias_quantizer=quantized_bits(
-                                                          5, 0, alpha=1),
+                                                          BIT_WIDTH, 0, alpha=1),
                                                       kernel_initializer='lecun_uniform'), **self.pruning_params)(self.encoder)
             self.decoder = QActivation(activation=quantized_relu(
                 5, 0), name='relu3_dec')(self.decoder)
@@ -126,35 +130,42 @@ class QAutoencoder:
         if not self.pruned:
             self.decoder = QDense(16,  name='fc3',
                                   kernel_quantizer=quantized_bits(
-                                      5, 0, alpha=1),
-                                  bias_quantizer=quantized_bits(5, 0, alpha=1),
+                                      BIT_WIDTH, 0, alpha=1),
+                                  bias_quantizer=quantized_bits(
+                                      BIT_WIDTH, 0, alpha=1),
                                   kernel_initializer='lecun_uniform')(self.encoder)
             self.decoder = QActivation(
-                activation=quantized_relu(5), name='relu3_dec')(self.decoder)
+                activation=quantized_relu(BIT_WIDTH), name='relu3_dec')(self.decoder)
 
         self.decoder = QDense(32,  name='fc4',
-                              kernel_quantizer=quantized_bits(5, 0, alpha=1),
-                              bias_quantizer=quantized_bits(5, 0, alpha=1),
+                              kernel_quantizer=quantized_bits(
+                                  BIT_WIDTH, 0, alpha=1),
+                              bias_quantizer=quantized_bits(
+                                  BIT_WIDTH, 0, alpha=1),
                               kernel_initializer='lecun_uniform')(self.decoder)
         self.decoder = QActivation(
-            activation=quantized_relu(5), name='relu4')(self.decoder)
+            activation=quantized_relu(BIT_WIDTH), name='relu4')(self.decoder)
 
         self.decoder = QDense(32,  name='fc5',
-                              kernel_quantizer=quantized_bits(5, 0, alpha=1),
-                              bias_quantizer=quantized_bits(5, 0, alpha=1),
+                              kernel_quantizer=quantized_bits(
+                                  BIT_WIDTH, 0, alpha=1),
+                              bias_quantizer=quantized_bits(
+                                  BIT_WIDTH, 0, alpha=1),
                               kernel_initializer='lecun_uniform')(self.decoder)
         self.decoder = QActivation(
-            activation=quantized_relu(5), name='relu5')(self.decoder)
+            activation=quantized_relu(BIT_WIDTH), name='relu5')(self.decoder)
 
         self.decoder = QDense(self.input_shape[0], name='decoder_output',
-                              kernel_quantizer=quantized_bits(6, 0, alpha=1),
-                              bias_quantizer=quantized_bits(6, 0, alpha=1),
+                              kernel_quantizer=quantized_bits(
+                                  BIT_WIDTH, 0, alpha=1),
+                              bias_quantizer=quantized_bits(
+                                  BIT_WIDTH, 0, alpha=1),
                               kernel_initializer='lecun_uniform')(self.decoder)
         # self.decoder = Activation(activation='sigmoid', name='sigmoid')(self.decoder)
         self.decoder = QActivation(activation=quantized_relu(
-            6, use_sigmoid=1), name='relu_decoder')(self.decoder)
+            BIT_WIDTH, use_sigmoid=1), name='relu_decoder')(self.decoder)
 
-    def build_classifier(self):
+    def build_classifier(self, BIT_WIDTH):
         """ Building the classifier architecture."""
         if self.encoder is None:
             raise RuntimeError(
@@ -163,40 +174,40 @@ class QAutoencoder:
         if self.pruned:
             self.latent_classifier = prune_low_magnitude(QDense(16,  name='fc4_prunedclass',
                                                                 kernel_quantizer=quantized_bits(
-                                                                    6, 0, alpha=1),
+                                                                    BIT_WIDTH, 0, alpha=1),
                                                                 bias_quantizer=quantized_bits(
-                                                                    6, 0, alpha=1),
+                                                                    BIT_WIDTH, 0, alpha=1),
                                                                 kernel_initializer='lecun_uniform',
                                                                 kernel_regularizer=l1(0.0001)), **self.pruning_params)(self.encoder)
             self.latent_classifier = QActivation(activation=quantized_relu(
-                6, 0), name='prunclass_relu4')(self.latent_classifier)
+                BIT_WIDTH, 0), name='prunclass_relu4')(self.latent_classifier)
 
         if not self.pruned:
             self.latent_classifier = QDense(16,  name='fc4_class',
                                             kernel_quantizer=quantized_bits(
-                                                6, 0, alpha=1),
+                                                BIT_WIDTH, 0, alpha=1),
                                             bias_quantizer=quantized_bits(
-                                                6, 0, alpha=1),
+                                                BIT_WIDTH, 0, alpha=1),
                                             kernel_initializer='lecun_uniform',
                                             kernel_regularizer=l1(0.0001))(self.encoder)
             self.latent_classifier = QActivation(activation=quantized_relu(
-                6), name='class_relu4')(self.latent_classifier)
+                BIT_WIDTH), name='class_relu4')(self.latent_classifier)
 
         self.latent_classifier = QDense(40,  name='fc5_class',
                                         kernel_quantizer=quantized_bits(
-                                            6, 0, alpha=1),
+                                            BIT_WIDTH, 0, alpha=1),
                                         bias_quantizer=quantized_bits(
-                                            6, 0, alpha=1),
+                                            BIT_WIDTH, 0, alpha=1),
                                         kernel_initializer='lecun_uniform',
                                         kernel_regularizer=l1(0.0001))(self.latent_classifier)
         self.latent_classifier = QActivation(activation=quantized_relu(
-            6), name='class_relu5')(self.latent_classifier)
+            BIT_WIDTH), name='class_relu5')(self.latent_classifier)
 
         self.latent_classifier = QDense(self.num_classes,  name='classifier_out',
                                         kernel_quantizer=quantized_bits(
-                                            16, 6, alpha=1),
+                                            (2*BIT_WIDTH), BIT_WIDTH, alpha=1),
                                         bias_quantizer=quantized_bits(
-                                            16, 6, alpha=1),
+                                            (2*BIT_WIDTH), BIT_WIDTH, alpha=1),
                                         kernel_initializer='lecun_uniform',
                                         kernel_regularizer=l1(0.0001))(self.latent_classifier)
         self.latent_classifier = Activation(
