@@ -36,6 +36,7 @@ class QAutoencoder:
     """Autoencoder Class"""
 
     def __init__(self, data: mnist.MNISTData, num_classes: int = 10, pruned: bool = False, BIT_WIDTH: int = 5):
+        self.name = 'mini'
         self.x_train = data.x_train
         self.x_test = data.x_test
         self.y_train = data.y_train
@@ -65,7 +66,7 @@ class QAutoencoder:
         """Build your encoder architecture and store the output in self.encoder. 
         The final encoding dimension is 2."""
 
-        self.encoder = QDense(15,  name='fc1',
+        self.encoder = QDense(4,  name='fc1',
                               # (bits, integer, scaling factor per channel)
                               kernel_quantizer=quantized_bits(
                                   self.BIT_WIDTH, 0, alpha=1),
@@ -95,7 +96,7 @@ class QAutoencoder:
                 activation=quantized_relu(self.BIT_WIDTH), name='relu3_enc')(self.encoder)
 
         if not self.pruned:
-            self.encoder = QDense(15,  name='fc2',
+            self.encoder = QDense(3,  name='fc2',
                                   kernel_quantizer=quantized_bits(  # (bits, integer, scaling factor per channel)
                                       self.BIT_WIDTH, 0, alpha=1),
                                   bias_quantizer=quantized_bits(
@@ -103,7 +104,7 @@ class QAutoencoder:
                                   kernel_initializer='lecun_uniform')(self.encoder)
             self.encoder = QActivation(
                 activation=quantized_relu(self.BIT_WIDTH), name='relu2')(self.encoder)
-            
+
             # self.encoder = QDense(15,  name='fc3',
             #                       kernel_quantizer=quantized_bits(  # (bits, integer, scaling factor per channel)
             #                           self.BIT_WIDTH, 0, alpha=1),
@@ -112,7 +113,6 @@ class QAutoencoder:
             #                       kernel_initializer='lecun_uniform')(self.encoder)
             # self.encoder = QActivation(
             #     activation=quantized_relu(self.BIT_WIDTH), name='relu2')(self.encoder)
-            
 
         self.encoder = Dense(self.latent_dim,  activation='relu',
                              name='encoder_output')(self.encoder)
@@ -139,7 +139,7 @@ class QAutoencoder:
                 5, 0), name='relu3_dec')(self.decoder)
 
         if not self.pruned:
-            self.decoder = QDense(16,  name='fc3',
+            self.decoder = QDense(3,  name='fc3',
                                   kernel_quantizer=quantized_bits(
                                       self.BIT_WIDTH, 0, alpha=1),  # (bits, integer, scaling factor per channel)
                                   bias_quantizer=quantized_bits(
@@ -148,7 +148,7 @@ class QAutoencoder:
             self.decoder = QActivation(
                 activation=quantized_relu(self.BIT_WIDTH), name='relu3_dec')(self.decoder)
 
-        self.decoder = QDense(32,  name='fc4',
+        self.decoder = QDense(4,  name='fc4',
                               kernel_quantizer=quantized_bits(
                                   self.BIT_WIDTH, 0, alpha=1),  # (bits, integer, scaling factor per channel)
                               bias_quantizer=quantized_bits(
@@ -157,14 +157,14 @@ class QAutoencoder:
         self.decoder = QActivation(
             activation=quantized_relu(self.BIT_WIDTH), name='relu4')(self.decoder)
 
-        self.decoder = QDense(32,  name='fc5',
-                              kernel_quantizer=quantized_bits(
-                                  self.BIT_WIDTH, 0, alpha=1),  # (bits, integer, scaling factor per channel)
-                              bias_quantizer=quantized_bits(
-                                  self.BIT_WIDTH, 0, alpha=1),
-                              kernel_initializer='lecun_uniform')(self.decoder)
-        self.decoder = QActivation(
-            activation=quantized_relu(self.BIT_WIDTH), name='relu5')(self.decoder)
+        # self.decoder = QDense(32,  name='fc5',
+        #                       kernel_quantizer=quantized_bits(
+        #                           self.BIT_WIDTH, 0, alpha=1),  # (bits, integer, scaling factor per channel)
+        #                       bias_quantizer=quantized_bits(
+        #                           self.BIT_WIDTH, 0, alpha=1),
+        #                       kernel_initializer='lecun_uniform')(self.decoder)
+        # self.decoder = QActivation(
+        #     activation=quantized_relu(self.BIT_WIDTH), name='relu5')(self.decoder)
 
         self.decoder = QDense(self.input_shape[0], name='decoder_output',
                               kernel_quantizer=quantized_bits(
@@ -256,10 +256,10 @@ class QAutoencoder:
 
             if not self.pruned:
                 self.autoencoder.save(
-                    f'model/QAE_model{self.BIT_WIDTH}bits/KERAS_check_model_w_classifier.h5')
+                    f'model/QAE_model{self.BIT_WIDTH}bits{self.name}/KERAS_check_model_w_classifier.h5')
             if self.pruned:
                 self.autoencoder.save(
-                    f'model/QAE_model{self.BIT_WIDTH}bits/KERAS_check_pruned_model_w_classifier.h5')
+                    f'model/QAE_model{self.BIT_WIDTH}bits{self.name}/KERAS_check_pruned_model_w_classifier.h5')
 
         else:
             # self.autoencoder = Model(
@@ -275,10 +275,10 @@ class QAutoencoder:
             self.autoencoder.compile(loss='mse', optimizer='adam')
             if not self.pruned:
                 self.autoencoder.save(
-                    f'model/QAE_model{self.BIT_WIDTH}bits/KERAS_check_model_wo_classifier.h5')
+                    f'model/QAE_model{self.BIT_WIDTH}bits{self.name}/KERAS_check_model_wo_classifier.h5')
             if self.pruned:
                 self.autoencoder.save(
-                    f'model/QAE_model{self.BIT_WIDTH}bits/KERAS_check_pruned_model_wo_classifier.h5')
+                    f'model/QAE_model{self.BIT_WIDTH}bits{self.name}/KERAS_check_pruned_model_wo_classifier.h5')
         self.autoencoder.summary()
 
     def fit_data(self, batch_size=256, epochs=30, use_latent_classifier=False):
@@ -291,7 +291,7 @@ class QAutoencoder:
                                   lr_epsilon=0.000001,
                                   lr_cooldown=2,
                                   lr_minimum=0.0000001,
-                                  outputDir=f'model/QAE_model{self.BIT_WIDTH}bits/callbacks')
+                                  outputDir=f'model/QAE_model{self.BIT_WIDTH}bits{self.name}/callbacks')
         callbacks.callbacks.append(pruning_callbacks.UpdatePruningStep())
 
         if use_latent_classifier:
@@ -307,10 +307,10 @@ class QAutoencoder:
             self.autoencoder = strip_pruning(self.autoencoder)
             if not self.pruned:
                 self.autoencoder.save(
-                    f'model/QAE_model{self.BIT_WIDTH}bits/KERAS_check_best_model_classifier1.h5')
+                    f'model/QAE_model{self.BIT_WIDTH}bits{self.name}/KERAS_check_best_model_classifier1.h5')
             if self.pruned:
                 self.autoencoder.save(
-                    f'model/QAE_model{self.BIT_WIDTH}bits/KERAS_check_pruned_best_model_classifier1.h5')
+                    f'model/QAE_model{self.BIT_WIDTH}bits{self.name}/KERAS_check_pruned_best_model_classifier1.h5')
         else:
             self.history = self.autoencoder.fit(self.x_train, self.x_train,
                                                 validation_data=(
@@ -320,11 +320,11 @@ class QAutoencoder:
             self.autoencoder = strip_pruning(self.autoencoder)
             if not self.pruned:
                 self.autoencoder.save(
-                    # f'model/QAE_model{self.BIT_WIDTH}bits/KERAS_check_best_model.h5')
-                    f'model/QAE_model{self.BIT_WIDTH}bits/KERAS_check_best_model.model')
+                    # f'model/QAE_model{self.BIT_WIDTH}bits{self.name}/KERAS_check_best_model.h5')
+                    f'model/QAE_model{self.BIT_WIDTH}bits{self.name}/KERAS_check_best_model.model')
             if self.pruned:
                 self.autoencoder.save(
-                    f'model/QAE_model_{self.BIT_WIDTH}bits/KERAS_check_pruned_best_model.h5')
+                    f'model/QAE_model_{self.BIT_WIDTH}bits{self.name}/KERAS_check_pruned_best_model.h5')
 
         self.history = self.history.history
 
