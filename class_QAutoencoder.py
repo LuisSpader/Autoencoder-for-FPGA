@@ -16,8 +16,6 @@ from callbacks import all_callbacks
 
 from tensorflow_model_optimization.python.core.sparsity.keras import prune, pruning_callbacks, pruning_schedule
 from tensorflow_model_optimization.sparsity.keras import strip_pruning, prune_low_magnitude
-tf.get_logger().setLevel('ERROR')
-
 
 # import tensorflow as tf
 # from tensorflow.python.keras import Input
