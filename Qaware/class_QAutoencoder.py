@@ -13,10 +13,10 @@ from data_zoom import *
 # import MNIST_database as mnist
 
 BIT_WIDTH = 8
-# EPOCHS = 80
-# Q_EPOCHS = 25
-EPOCHS = 1
-Q_EPOCHS = 1
+EPOCHS = 80
+Q_EPOCHS = 25
+# EPOCHS = 1
+# Q_EPOCHS = 1
 BATCH_SIZE = 256
 MODEL_NAME = 'model'
 MINI = False
@@ -71,6 +71,7 @@ class QAutoencoder:
         # refactor the code above to use the functional AP
 
         model.compile(optimizer='adam', loss='mse')
+        self.extract_model_name_id(model)
         # model.compile(optimizer='adam', loss='binary_crossentropy') # classifier
         return model
 
@@ -165,11 +166,14 @@ class QAutoencoder:
         # refactor the code above to use the functional AP
 
         model.compile(optimizer='adam', loss='mse')
+        self.extract_model_name_id(model)
+        # model.compile(optimizer='adam', loss='binary_crossentropy') # classifier
+        return model
+
+    def extract_model_name_id(self, model):
         arch_list = extract_architecture(model)
         arch_string = '_'.join(str(units) for units in arch_list)
         self.model_name_id = f"{self.model_name}_{arch_string}"
-        # model.compile(optimizer='adam', loss='binary_crossentropy') # classifier
-        return model
 
     def fit_data(self, batch_size=256, epochs=EPOCHS):
         """Write the fit function for the autoencoder. 
@@ -398,10 +402,11 @@ class QAutoencoder:
 
     def save_objects(self):
         save_path = '/'.join(self.path_to_model.split('/')[:-1])
+        self.model.save(f"{save_path}/model.h5")
+
         save_path = f"{save_path}/saved_objects{mini}"
         # save_path = self.path_to_model
         # # Save the Keras model
-        # self.model.save(f'{self.path_to_model}   ')
 
         # # Save the .tflite model
         # with open(f"{self.path_to_model}/saved_objects{mini}.tflite", "wb") as file:
@@ -439,15 +444,28 @@ class QAutoencoder:
             pickle.dump(attrs_to_save, f)
 
 
-model_obj = QAutoencoder(data_zoom, bit_width=BIT_WIDTH,
-                         EPOCHS=EPOCHS, Q_EPOCHS=Q_EPOCHS, model_name=MODEL_NAME)
-# model.fit(x_train, y_train, epochs=10, batch_size=32) # classifier
+MODEL_SIZE_list = [0, 1, 2, 3]
+if FIT_MODEL:
+    for x in range(3):
+        for mode in [True, False]:
+            MINI = mode
+            if MINI:
+                EPOCHS = 1
+                Q_EPOCHS = 1
+            else:
+                EPOCHS = 80
+                Q_EPOCHS = 25
+
+            for item in MODEL_SIZE_list:
+                MODEL_SIZE = item
+                model_obj = QAutoencoder(data_zoom, bit_width=BIT_WIDTH,
+                                         EPOCHS=EPOCHS, Q_EPOCHS=Q_EPOCHS, model_name=MODEL_NAME)
+                model_obj.fit_data(epochs=EPOCHS)
+
+
+# model_obj = QAutoencoder(data_zoom, bit_width=BIT_WIDTH,
+#                          EPOCHS=EPOCHS, Q_EPOCHS=Q_EPOCHS, model_name=MODEL_NAME)
 # model_obj.model.summary()
-# model.fit(x_train, x_train, epochs=EPOCHS, batch_size=BATCH_SIZE) #autoencoder
+# # model.fit(x_train, x_train, epochs=EPOCHS, batch_size=BATCH_SIZE) #autoencoder
 # if FIT_MODEL:
 #     model_obj.fit_data(epochs=EPOCHS)  # batch_size=BATCH_SIZE, epochs=EPOCHS)
-
-
-# # Save the objects of model_obj
-# if FIT_MODEL:
-#     save_objects(model_obj)
